@@ -1,0 +1,41 @@
+---
+
+- name: Generating a private key (/var/lib/pgsql/11/data/postgresql.key)
+  command: "openssl genrsa -des3 -passout pass:pb-pgssl -out '/var/lib/pgsql/11/data/server.key' 4096 -noout"
+
+
+- name: Removing passphrase from the key
+  command: "openssl rsa -in '/var/lib/pgsql/11/data/server.key' -passin pass:pb-pgssl -out '/var/lib/pgsql/11/data/server.key'"
+
+
+- name: Creating the server certificate(/var/lib/pgsql/11/data/server.crt)
+  command: "openssl req -new -key rsa:4096 -x509 -days 3650 -subj '/CN={{ ansible_hostname }}' -key '/var/lib/pgsql/11/data/server.key' -out '/var/lib/pgsql/11/data/server.crt'"
+
+
+- name: Using self-signed certificate as root certificate (/var/lib/pgsql/11/data/root.crt)
+  copy:
+    src: /var/lib/pgsql/11/data/server.crt
+    dest: /var/lib/pgsql/11/data/root.crt
+    remote_src: yes
+
+
+- name: Setting up needed permissions
+  file:
+    path: "{{ item }}"
+    owner: postgres
+    group: postgres
+    mode: 0400
+  with_items:
+    - /var/lib/pgsql/11/data/root.crt
+    - /var/lib/pgsql/11/data/server.crt
+    - /var/lib/pgsql/11/data/server.key
+
+
+- name: Configuring postgresql.conf file
+  replace:
+    path: /var/lib/pgsql/11/data/postgresql.conf
+    regexp: "{{ item.parameter }}"
+    replace: "{{ item.replace }}"
+  with_items:
+    - { parameter: "#ssl = off", replace: "ssl = on" }
+    - { parameter: "#ssl_ca_file = ''", replace: "ssl_ca_file = 'root.crt'" }

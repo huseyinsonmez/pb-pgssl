@@ -1,0 +1,6 @@
+[all:vars]
+ansible_connection=ssh
+ansible_ssh_user=root
+
+[postgresql]
+pg0 ansible_host=134.209.23.63

@@ -1,0 +1,10 @@
+---
+
+- name: PostgreSQL Servers
+  hosts: postgresql
+  become: true
+  become_user: root
+  become_method: sudo
+
+  tasks:
+    - include: tasks/gencert.yml
